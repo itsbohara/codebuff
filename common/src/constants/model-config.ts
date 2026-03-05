@@ -32,8 +32,7 @@ export type OpenAIModel = (typeof openaiModels)[keyof typeof openaiModels]
 
 export const openrouterModels = {
   openrouter_claude_sonnet_4_5: 'anthropic/claude-sonnet-4.5',
-  // openrouter_claude_sonnet_4: 'anthropic/claude-4-sonnet-20250522',
-  openrouter_claude_sonnet_4: 'openrouter/kimi-k2.5',
+  openrouter_claude_sonnet_4: 'anthropic/claude-4-sonnet-20250522',
   openrouter_claude_opus_4: 'anthropic/claude-opus-4.1',
   openrouter_claude_3_5_haiku: 'anthropic/claude-3.5-haiku-20241022',
   openrouter_claude_3_5_sonnet: 'anthropic/claude-3.5-sonnet-20240620',
@@ -221,4 +220,40 @@ export const getModelForMode = (
     }[costMode]
   }
   throw new Error(`Unknown operation: ${operation}`)
+}
+
+/**
+ * Get the model to use for max mode main tasks.
+ * Checks for CODEBUFF_MAX_MODE_MODEL environment variable override,
+ * otherwise falls back to the default model.
+ */
+export const getMaxModeModel = (defaultModel: Model): Model => {
+  const maxModeOverride = process.env.CODEBUFF_MAX_MODE_MODEL
+  return maxModeOverride || defaultModel
+}
+
+/**
+ * Get the model to use for max mode helper/lightweight tasks (like file-picker).
+ * Checks for CODEBUFF_MAX_MODE_HELPER_MODEL env var first,
+ * then falls back to CODEBUFF_MAX_MODE_MODEL if set,
+ * otherwise uses the provided default model.
+ */
+export const getMaxModeHelperModel = (defaultModel: Model): Model => {
+  const helperModelOverride = process.env.CODEBUFF_MAX_MODE_HELPER_MODEL
+  const mainModelOverride = process.env.CODEBUFF_MAX_MODE_MODEL
+  return helperModelOverride || mainModelOverride || defaultModel
+}
+
+/**
+ * Get the model to use for research tasks (web search, docs reading).
+ * Checks for CODEBUFF_MAX_MODE_RESEARCHER_MODEL env var first,
+ * then falls back to CODEBUFF_MAX_MODE_HELPER_MODEL if set,
+ * then falls back to CODEBUFF_MAX_MODE_MODEL if set,
+ * otherwise uses the provided default model.
+ */
+export const getMaxModeResearcherModel = (defaultModel: Model): Model => {
+  const researcherModelOverride = process.env.CODEBUFF_MAX_MODE_RESEARCHER_MODEL
+  const helperModelOverride = process.env.CODEBUFF_MAX_MODE_HELPER_MODEL
+  const mainModelOverride = process.env.CODEBUFF_MAX_MODE_MODEL
+  return researcherModelOverride || helperModelOverride || mainModelOverride || defaultModel
 }

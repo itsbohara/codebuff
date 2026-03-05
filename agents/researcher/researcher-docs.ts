@@ -1,3 +1,5 @@
+import { getMaxModeResearcherModel, models } from '@codebuff/common/constants/model-config'
+
 import { publisher } from '../constants'
 
 import type { SecretAgentDefinition } from '../types/secret-agent-definition'
@@ -5,7 +7,7 @@ import type { SecretAgentDefinition } from '../types/secret-agent-definition'
 const definition: SecretAgentDefinition = {
   id: 'researcher-docs',
   publisher,
-  model: 'google/gemini-3.1-flash-lite-preview',
+  model: getMaxModeResearcherModel(models.openrouter_claude_3_5_haiku),
   displayName: 'Doc',
   spawnerPrompt: `Expert at reading technical documentation of major public libraries and frameworks to find relevant information. (e.g. React, MongoDB, Postgres, etc.)`,
   inputSchema: {

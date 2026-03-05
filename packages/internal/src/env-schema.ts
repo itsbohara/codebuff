@@ -7,6 +7,12 @@ export const serverEnvSchema = clientEnvSchema.extend({
   // Optional: Custom OpenAI-compatible base URL (defaults to OpenRouter)
   // Can be used with local LLMs, LiteLLM proxy, or other OpenAI-compatible endpoints
   OPENROUTER_BASE_URL: z.string().url().optional(),
+  // Optional: Override the model used for max mode main tasks (defaults to hardcoded model if not set)
+  CODEBUFF_MAX_MODE_MODEL: z.string().min(1).optional(),
+  // Optional: Override the model used for max mode helper/lightweight tasks like file-picker (defaults to CODEBUFF_MAX_MODE_MODEL or hardcoded model)
+  CODEBUFF_MAX_MODE_HELPER_MODEL: z.string().min(1).optional(),
+  // Optional: Override the model used for research tasks like web search and docs (defaults to CODEBUFF_MAX_MODE_HELPER_MODEL or hardcoded model)
+  CODEBUFF_MAX_MODE_RESEARCHER_MODEL: z.string().min(1).optional(),
   // Optional: Only needed if using direct provider APIs (not recommended)
   OPENAI_API_KEY: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
@@ -51,6 +57,9 @@ export const serverProcessEnv: ServerInput = {
   // LLM API keys
   OPEN_ROUTER_API_KEY: process.env.OPEN_ROUTER_API_KEY,
   OPENROUTER_BASE_URL: process.env.OPENROUTER_BASE_URL,
+  CODEBUFF_MAX_MODE_MODEL: process.env.CODEBUFF_MAX_MODE_MODEL,
+  CODEBUFF_MAX_MODE_HELPER_MODEL: process.env.CODEBUFF_MAX_MODE_HELPER_MODEL,
+  CODEBUFF_MAX_MODE_RESEARCHER_MODEL: process.env.CODEBUFF_MAX_MODE_RESEARCHER_MODEL,
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
   LINKUP_API_KEY: process.env.LINKUP_API_KEY,

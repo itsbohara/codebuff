@@ -1,3 +1,5 @@
+import { getMaxModeHelperModel, models } from '@codebuff/common/constants/model-config'
+
 import commander from './commander'
 
 import type { AgentDefinition } from './types/agent-definition'
@@ -6,7 +8,7 @@ const definition: AgentDefinition = {
   ...commander,
   id: 'commander-lite',
   displayName: 'Commander Lite',
-  model: 'google/gemini-3.1-flash-lite-preview',
+  model: getMaxModeHelperModel(models.openrouter_claude_3_5_haiku),
 }
 
 export default definition

@@ -1,13 +1,13 @@
+import { getMaxModeModel, models } from '@codebuff/common/constants/model-config'
+
 import { publisher } from '../constants'
 import {
   PLACEHOLDER,
   type SecretAgentDefinition,
 } from '../types/secret-agent-definition'
 
-import type { Model } from '@codebuff/common/old-constants'
-
 export const createReviewer = (
-  model: Model,
+  model: string,
 ): Omit<SecretAgentDefinition, 'id'> => ({
   model,
   displayName: 'Nit Pick Nick',
@@ -64,7 +64,7 @@ Be extremely concise.`,
 const definition: SecretAgentDefinition = {
   id: 'code-reviewer',
   publisher,
-  ...createReviewer('anthropic/claude-opus-4.6'),
+  ...createReviewer(getMaxModeModel(models.openrouter_claude_opus_4)),
 }
 
 export default definition

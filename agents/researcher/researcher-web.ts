@@ -1,3 +1,5 @@
+import { getMaxModeResearcherModel, models } from '@codebuff/common/constants/model-config'
+
 import { publisher } from '../constants'
 
 import type { ToolCall } from '../types/agent-definition'
@@ -6,7 +8,7 @@ import type { SecretAgentDefinition } from '../types/secret-agent-definition'
 const definition: SecretAgentDefinition = {
   id: 'researcher-web',
   publisher,
-  model: 'google/gemini-3.1-flash-lite-preview',
+  model: getMaxModeResearcherModel(models.openrouter_claude_3_5_haiku),
   displayName: 'Weeb',
   spawnerPrompt: `Browses the web to find relevant information.`,
   inputSchema: {

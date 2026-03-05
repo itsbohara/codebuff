@@ -1,3 +1,7 @@
+import {
+  getMaxModeModel,
+  models,
+} from '@codebuff/common/constants/model-config'
 import { buildArray } from '@codebuff/common/util/array'
 
 import { publisher } from '../constants'
@@ -28,8 +32,9 @@ export function createBase2(
 
   return {
     publisher,
-    // model: isFree ? 'fireworks/glm-5' : 'anthropic/claude-opus-4.6',
-    model: 'openrouter/glm-5',
+    model: isMax
+      ? getMaxModeModel(models.openrouter_claude_sonnet_4)
+      : 'anthropic/claude-opus-4.6',
     displayName: 'Buffy the Orchestrator',
     spawnerPrompt:
       'Advanced base agent that orchestrates planning, editing, and reviewing for complex coding tasks',

@@ -1,3 +1,4 @@
+import { getMaxModeHelperModel } from '@codebuff/common/constants/model-config'
 
 import { publisher } from '../constants'
 import {
@@ -13,7 +14,9 @@ export const createFilePicker = (
   mode: FilePickerMode,
 ): Omit<SecretAgentDefinition, 'id'> => {
   const isMax = mode === 'max'
-  const model = isMax ? 'google/gemini-3.1-flash-lite-preview' : 'google/gemini-2.5-flash-lite'
+  const model = isMax
+    ? getMaxModeHelperModel('google/gemini-3.1-flash-lite-preview')
+    : 'google/gemini-2.5-flash-lite'
 
   return {
     displayName: 'Fletcher the File Fetcher',
@@ -47,9 +50,7 @@ export const createFilePicker = (
     outputMode: 'last_message',
     includeMessageHistory: false,
     toolNames: ['spawn_agents'],
-    spawnableAgents: isMax
-      ? ['file-lister-max']
-      : ['file-lister'],
+    spawnableAgents: isMax ? ['file-lister-max'] : ['file-lister'],
 
     systemPrompt: `You are an expert at finding relevant files in a codebase. ${PLACEHOLDER.FILE_TREE_PROMPT}`,
     instructionsPrompt: `Instructions:

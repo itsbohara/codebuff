@@ -28,7 +28,8 @@ export function createBase2(
 
   return {
     publisher,
-    model: isFree ? 'minimax/minimax-m2.5' : 'anthropic/claude-opus-4.6',
+    // model: isFree ? 'fireworks/glm-5' : 'anthropic/claude-opus-4.6',
+    model: 'openrouter/glm-5',
     displayName: 'Buffy the Orchestrator',
     spawnerPrompt:
       'Advanced base agent that orchestrates planning, editing, and reviewing for complex coding tasks',

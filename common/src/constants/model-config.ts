@@ -32,7 +32,8 @@ export type OpenAIModel = (typeof openaiModels)[keyof typeof openaiModels]
 
 export const openrouterModels = {
   openrouter_claude_sonnet_4_5: 'anthropic/claude-sonnet-4.5',
-  openrouter_claude_sonnet_4: 'anthropic/claude-4-sonnet-20250522',
+  // openrouter_claude_sonnet_4: 'anthropic/claude-4-sonnet-20250522',
+  openrouter_claude_sonnet_4: 'openrouter/kimi-k2.5',
   openrouter_claude_opus_4: 'anthropic/claude-opus-4.1',
   openrouter_claude_3_5_haiku: 'anthropic/claude-3.5-haiku-20241022',
   openrouter_claude_3_5_sonnet: 'anthropic/claude-3.5-sonnet-20240620',

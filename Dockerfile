@@ -26,6 +26,9 @@ COPY evals/package.json ./evals/
 # Install dependencies
 RUN bun install
 
+# Set env var to skip DB-dependent build steps
+ENV DOCKER_BUILD=true
+
 # Copy source code
 COPY . .
 

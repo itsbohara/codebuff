@@ -10,6 +10,12 @@
 import { fetchAgentsWithMetrics } from '../src/server/agents-data'
 
 async function main() {
+  // Skip in Docker builds where DB might not be available or during CI
+  if (process.env.DOCKER_BUILD === 'true' || process.env.CI === 'true') {
+    console.log('[Prebuild] Skipping agents validation in Docker/CI environment')
+    process.exit(0)
+  }
+
   console.log('[Prebuild] Validating agents data pipeline...')
 
   try {

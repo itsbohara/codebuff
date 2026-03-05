@@ -36,10 +36,6 @@ import type { NextRequest } from 'next/server'
 import type { ChatCompletionRequestBody } from '@/llm-api/types'
 
 import {
-  handleOpenAINonStream,
-  OPENAI_SUPPORTED_MODELS,
-} from '@/llm-api/openai'
-import {
   handleOpenRouterNonStream,
   handleOpenRouterStream,
   OpenRouterError,
@@ -379,39 +375,18 @@ export async function postChatCompletions(params: {
           },
         })
       } else {
-        // Non-streaming request
-        const model = typedBody.model
-        const modelParts = model.split('/')
-        const shortModelName = modelParts.length > 1 ? modelParts[1] : model
-        const isOpenAIDirectModel =
-          model.startsWith('openai/') &&
-          (OPENAI_SUPPORTED_MODELS as readonly string[]).includes(shortModelName)
-        // Only use OpenAI endpoint for OpenAI models with n parameter
-        // All other models (including non-OpenAI with n parameter) should use OpenRouter
-        const shouldUseOpenAIEndpoint =
-          isOpenAIDirectModel && typedBody.codebuff_metadata?.n !== undefined
-
-        const nonStreamRequest = shouldUseOpenAIEndpoint
-          ? handleOpenAINonStream({
-              body: typedBody,
-              userId,
-              stripeCustomerId,
-              agentId,
-              fetch,
-              logger,
-              insertMessageBigquery,
-            })
-          : handleOpenRouterNonStream({
-              body: typedBody,
-              userId,
-              stripeCustomerId,
-              agentId,
-              openrouterApiKey,
-              fetch,
-              logger,
-              insertMessageBigquery,
-            })
-        const result = await nonStreamRequest
+        // All non-streaming requests go through OpenRouter
+        // OpenRouter supports all models (OpenAI, Anthropic, etc.) through a single API
+        const result = await handleOpenRouterNonStream({
+          body: typedBody,
+          userId,
+          stripeCustomerId,
+          agentId,
+          openrouterApiKey,
+          fetch,
+          logger,
+          insertMessageBigquery,
+        })
 
         trackEvent({
           event: AnalyticsEvent.CHAT_COMPLETIONS_GENERATION_STARTED,

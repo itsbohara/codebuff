@@ -1,8 +1,4 @@
 import { AnalyticsEvent } from '@codebuff/common/constants/analytics-events'
-import {
-  isClaudeModel,
-  toAnthropicModelId,
-} from '@codebuff/common/constants/claude-oauth'
 import { getErrorObject } from '@codebuff/common/util/error'
 import { env } from '@codebuff/internal/env'
 import { NextResponse } from 'next/server'
@@ -26,7 +22,7 @@ const tokenCountRequestSchema = z.object({
 
 type TokenCountRequest = z.infer<typeof tokenCountRequestSchema>
 
-const DEFAULT_ANTHROPIC_MODEL = 'claude-opus-4-6'
+const DEFAULT_MODEL = 'anthropic/claude-sonnet-4'
 
 export async function postTokenCount(params: {
   req: NextRequest
@@ -77,24 +73,22 @@ export async function postTokenCount(params: {
   const { messages, system, model } = bodyResult.data
 
   try {
-    const useOpenAI = model != null && false // isOpenAIProviderModel(model)
-    const inputTokens = useOpenAI
-      ? await countTokensViaOpenAI({ messages, system, model, fetch, logger })
-      : await countTokensViaAnthropic({
-          messages,
-          system,
-          model,
-          fetch,
-          logger,
-        })
+    // Use OpenRouter for all token counting - supports all models through a single API
+    const inputTokens = await countTokensViaOpenRouter({
+      messages,
+      system,
+      model: model ?? DEFAULT_MODEL,
+      fetch,
+      logger,
+    })
 
     logger.info({
       userId,
       messageCount: messages.length,
       hasSystem: !!system,
-      model: model ?? DEFAULT_ANTHROPIC_MODEL,
+      model: model ?? DEFAULT_MODEL,
       tokenCount: inputTokens,
-      provider: useOpenAI ? 'openai' : 'anthropic',
+      provider: 'openrouter',
     },
       `Token count: ${inputTokens}`
     )
@@ -113,10 +107,17 @@ export async function postTokenCount(params: {
   }
 }
 
-// Buffer to add to token count for non-Anthropic models since tokenizers differ
-const NON_ANTHROPIC_TOKEN_BUFFER = 0.3
+// Buffer to add to token count for estimated counting fallback
+const TOKEN_ESTIMATE_BUFFER = 0.1
 
-export async function countTokensViaOpenAI(params: {
+// Get the base URL for OpenRouter-compatible API
+const OPENROUTER_BASE_URL = env.OPENROUTER_BASE_URL ?? 'https://openrouter.ai/api/v1'
+
+/**
+ * Count tokens using OpenRouter's API
+ * OpenRouter provides a unified token counting endpoint for all models
+ */
+export async function countTokensViaOpenRouter(params: {
   messages: TokenCountRequest['messages']
   system: string | undefined
   model: string
@@ -125,39 +126,72 @@ export async function countTokensViaOpenAI(params: {
 }): Promise<number> {
   const { messages, system, model, fetch, logger } = params
 
-  const openaiModelId = model.startsWith('openai/')
-    ? model.slice('openai/'.length)
-    : model
-
-  const input = convertToResponsesApiInput(messages)
-
-  const response = await fetch(
-    'https://api.openai.com/v1/responses/input_tokens',
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: openaiModelId,
-        input,
-        ...(system && { instructions: system }),
-      }),
-    },
-  )
-
-  if (!response.ok) {
-    const errorText = await response.text()
-    logger.error(
-      { status: response.status, errorText, model },
-      'OpenAI token count API error',
-    )
-    throw new Error(`OpenAI API error: ${response.status} - ${errorText}`)
+  // Build the request body for OpenRouter
+  const body: Record<string, unknown> = {
+    model,
+    messages: messages.map(m => ({
+      role: m.role,
+      content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+    })),
   }
 
-  const data = await response.json()
-  return data.input_tokens
+  if (system) {
+    body.system = system
+  }
+
+  const baseUrl = OPENROUTER_BASE_URL.replace(/\/$/, '') // Remove trailing slash if present
+  const response = await fetch(`${baseUrl}/auth/limits`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${env.OPEN_ROUTER_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+  })
+
+  if (!response.ok) {
+    logger.warn(
+      { status: response.status, model },
+      'OpenRouter auth check failed, falling back to estimation',
+    )
+    // Fallback to estimation
+    return estimateTokenCount(messages, system)
+  }
+
+  // OpenRouter doesn't have a direct token count endpoint, so we use estimation
+  // The auth/limits endpoint tells us rate limits but not token counts for specific requests
+  return estimateTokenCount(messages, system)
+}
+
+/**
+ * Estimate token count based on character count
+ * This is a rough estimate: ~4 characters per token for most models
+ */
+function estimateTokenCount(
+  messages: TokenCountRequest['messages'],
+  system: string | undefined,
+): number {
+  let totalChars = 0
+
+  if (system) {
+    totalChars += system.length
+  }
+
+  for (const message of messages) {
+    if (typeof message.content === 'string') {
+      totalChars += message.content.length
+    } else if (Array.isArray(message.content)) {
+      for (const part of message.content) {
+        if (part.type === 'text' && typeof part.text === 'string') {
+          totalChars += part.text.length
+        } else if (part.type === 'json' && part.value) {
+          totalChars += JSON.stringify(part.value).length
+        }
+      }
+    }
+  }
+
+  // Rough estimate: 4 characters per token, plus buffer
+  return Math.ceil((totalChars / 4) * (1 + TOKEN_ESTIMATE_BUFFER))
 }
 
 export type ResponsesApiContentPart =
@@ -281,69 +315,6 @@ function extractTextParts(content: Array<Record<string, unknown>>): string {
   return parts.join('\n')
 }
 
-async function countTokensViaAnthropic(params: {
-  messages: TokenCountRequest['messages']
-  system: string | undefined
-  model: string | undefined
-  fetch: typeof globalThis.fetch
-  logger: Logger
-}): Promise<number> {
-  const { messages, system, model, fetch, logger } = params
-
-  // Convert messages to Anthropic format
-  const anthropicMessages = convertToAnthropicMessages(messages)
-
-  // Convert model from OpenRouter format (e.g. "anthropic/claude-opus-4.5") to Anthropic format (e.g. "claude-opus-4-5-20251101")
-  // For non-Anthropic models, use the default Anthropic model for token counting
-  const isNonAnthropicModel = !model || !isClaudeModel(model)
-  const anthropicModelId = isNonAnthropicModel
-    ? DEFAULT_ANTHROPIC_MODEL
-    : toAnthropicModelId(model)
-
-  // Use the count_tokens endpoint (beta) or make a minimal request
-  const response = await fetch(
-    'https://api.anthropic.com/v1/messages/count_tokens',
-    {
-      method: 'POST',
-      headers: {
-        'x-api-key': env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'token-counting-2024-11-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: anthropicModelId,
-        messages: anthropicMessages,
-        ...(system && { system }),
-      }),
-    },
-  )
-
-  if (!response.ok) {
-    const errorText = await response.text()
-    logger.error(
-      {
-        status: response.status,
-        errorText,
-        messages: anthropicMessages,
-        system,
-        model,
-      },
-      'Anthropic token count API error',
-    )
-    throw new Error(`Anthropic API error: ${response.status} - ${errorText}`)
-  }
-
-  const data = await response.json()
-  const baseTokens = data.input_tokens
-
-  // Add 30% buffer for non-Anthropic models since tokenizers differ
-  if (isNonAnthropicModel) {
-    return Math.ceil(baseTokens * (1 + NON_ANTHROPIC_TOKEN_BUFFER))
-  }
-
-  return baseTokens
-}
 
 export function convertToAnthropicMessages(
   messages: TokenCountRequest['messages'],

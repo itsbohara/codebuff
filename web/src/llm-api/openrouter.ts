@@ -34,6 +34,10 @@ const openrouterAgent = new Agent({
   bodyTimeout: 0, // No body timeout for streaming responses
 })
 
+// Get the base URL for OpenRouter-compatible API
+// Defaults to OpenRouter, but can be configured to use any OpenAI-compatible endpoint
+const OPENROUTER_BASE_URL = env.OPENROUTER_BASE_URL ?? 'https://openrouter.ai/api/v1'
+
 /** Result from processing a line, including optional billed credits for final chunk */
 type LineResult = {
   state: StreamState
@@ -46,7 +50,8 @@ function createOpenRouterRequest(params: {
   fetch: typeof globalThis.fetch
 }) {
   const { body, openrouterApiKey, fetch } = params
-  return fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const baseUrl = OPENROUTER_BASE_URL.replace(/\/$/, '') // Remove trailing slash if present
+  return fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${openrouterApiKey ?? env.OPEN_ROUTER_API_KEY}`,

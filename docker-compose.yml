@@ -1,0 +1,42 @@
+name: codebuff-local
+services:
+  # NOTE: Database already exists on local system - DO NOT use this db service.
+  # The web server connects to your local PostgreSQL (localhost:5432).
+  # Uncomment below only if you need a fresh Docker database instead.
+  #
+  # db:
+  #   image: postgres:16
+  #   restart: always
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     POSTGRES_USER: ${DB_USER:-manicode_user_local}
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD:-secretpassword_local}
+  #     POSTGRES_DB: ${DB_NAME:-manicode_db_local}
+  #   volumes:
+  #     - db_data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-manicode_user_local} -d ${DB_NAME:-manicode_db_local}"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    env_file:
+      - .env.local
+    # NOTE: Removed depends_on db since we're using local PostgreSQL
+    # Make sure your .env.local has the correct DATABASE_URL pointing to localhost:5432
+    volumes:
+      # For development, mount .env.local for hot reload of env vars
+      - ./.env.local:/app/.env.local:ro
+
+# NOTE: db_data volume removed - using local PostgreSQL instead

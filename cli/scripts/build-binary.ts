@@ -118,6 +118,30 @@ async function main() {
     throw new Error('Version argument is required when building a binary')
   }
 
+  // Load .env.local from repo root to ensure environment variables are available
+  const envFilePath = join(repoRoot, '.env.local')
+  if (existsSync(envFilePath)) {
+    log(`Loading environment from ${envFilePath}`)
+    const envFile = Bun.file(envFilePath)
+    const envContent = await envFile.text()
+    for (const line of envContent.split('\n')) {
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith('#')) continue
+      const eqIndex = trimmed.indexOf('=')
+      if (eqIndex === -1) continue
+      const key = trimmed.slice(0, eqIndex).trim()
+      let value = trimmed.slice(eqIndex + 1).trim()
+      // Remove surrounding quotes if present
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1)
+      }
+      if (key && !process.env[key]) {
+        process.env[key] = value
+      }
+    }
+  }
+
   log(`Building ${binaryName} @ ${version}`)
 
   const targetInfo = getTargetInfo()

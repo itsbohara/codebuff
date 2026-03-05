@@ -1,0 +1,47 @@
+# Dependencies
+node_modules
+*/node_modules
+
+# Build outputs
+.next
+dist
+*.tsbuildinfo
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+debug
+*.log
+logs
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment (except .env.local which we need)
+.env
+credentials.json
+
+# Testing
+*.test.ts
+*.spec.ts
+coverage
+
+# Documentation
+*.md
+!README.md
+
+# Misc
+.cache
+temp
+tmp
+.github

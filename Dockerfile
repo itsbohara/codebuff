@@ -12,11 +12,15 @@ COPY common/package.json ./common/
 COPY packages/internal/package.json ./packages/internal/
 COPY packages/billing/package.json ./packages/billing/
 COPY packages/agent-runtime/package.json ./packages/agent-runtime/
+COPY packages/code-map/package.json ./packages/code-map/
+COPY packages/bigquery/package.json ./packages/bigquery/
+COPY packages/build-tools/package.json ./packages/build-tools/
 COPY sdk/package.json ./sdk/
 COPY .agents/package.json ./.agents/
 COPY agents/package.json ./agents/
 COPY cli/package.json ./cli/
 COPY scripts/package.json ./scripts/
+COPY evals/package.json ./evals/
 
 # Install dependencies
 RUN bun install

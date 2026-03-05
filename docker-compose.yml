@@ -27,8 +27,9 @@ services:
       dockerfile: Dockerfile
     restart: always
     ports:
-      - "3000:3000"
-      - "6009:6009"
+      # Map external port 6009 to internal container port 3000
+      # The Next.js app inside container runs on port 3000
+      - "6009:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000

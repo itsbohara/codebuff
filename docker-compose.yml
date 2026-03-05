@@ -34,11 +34,11 @@ services:
       - NODE_ENV=production
       - PORT=3000
     env_file:
-      - .env.local
+      - .env.docker
     # NOTE: Removed depends_on db since we're using local PostgreSQL
-    # Make sure your .env.local has the correct DATABASE_URL pointing to localhost:5432
+    # Make sure your .env.docker has host.docker.internal for the database URL
     volumes:
-      # For development, mount .env.local for hot reload of env vars
-      - ./.env.local:/app/.env.local:ro
+      # For development, mount .env.docker for hot reload of env vars
+      - ./.env.docker:/app/.env.docker:ro
 
 # NOTE: db_data volume removed - using local PostgreSQL instead

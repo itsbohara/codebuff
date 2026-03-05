@@ -1,3 +1,5 @@
+import { getMaxModeHelperModel } from '@codebuff/common/constants/model-config'
+
 import { type SecretAgentDefinition } from '../types/secret-agent-definition'
 import { createFileLister } from './file-lister'
 
@@ -6,6 +8,7 @@ const base = createFileLister()
 const definition: SecretAgentDefinition = {
   id: 'file-lister-max',
   ...base,
+  model: getMaxModeHelperModel('google/gemini-3.1-flash-lite-preview'),
   spawnerPrompt:
     'Lists up to 20 files that are relevant to the prompt within the given directories. Unless you know which directories are relevant, omit the directories parameter. This agent is great for finding files that could be relevant to the prompt.',
   instructionsPrompt: `Instructions:

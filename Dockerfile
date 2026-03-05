@@ -44,7 +44,7 @@ COPY --from=builder /app/sdk ./sdk
 
 WORKDIR /app/web
 
-EXPOSE 3000
+EXPOSE 3000 6009
 
 ENV NODE_ENV=production
 ENV PORT=3000

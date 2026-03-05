@@ -28,6 +28,7 @@ services:
     restart: always
     ports:
       - "3000:3000"
+      - "6009:6009"
     environment:
       - NODE_ENV=production
       - PORT=3000

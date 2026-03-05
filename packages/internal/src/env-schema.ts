@@ -18,7 +18,7 @@ export const serverEnvSchema = clientEnvSchema.extend({
   ANTHROPIC_API_KEY: z.string().optional(),
   LINKUP_API_KEY: z.string().min(1),
   CONTEXT7_API_KEY: z.string().optional(),
-  GRAVITY_API_KEY: z.string().min(1),
+  GRAVITY_API_KEY: z.string().min(1).optional(),
   PORT: z.coerce.number().min(1000),
 
   // Web/Database variables

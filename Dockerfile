@@ -16,6 +16,7 @@ COPY packages/code-map/package.json ./packages/code-map/
 COPY packages/bigquery/package.json ./packages/bigquery/
 COPY packages/build-tools/package.json ./packages/build-tools/
 COPY sdk/package.json ./sdk/
+# Need package.json for workspaces referenced in root package.json
 COPY .agents/package.json ./.agents/
 COPY agents/package.json ./agents/
 COPY cli/package.json ./cli/

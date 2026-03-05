@@ -1,11 +1,14 @@
 # Dependencies
 node_modules
 */node_modules
+.pnpm-store
 
 # Build outputs
 .next
 dist
 *.tsbuildinfo
+out
+build
 
 # Git
 .git
@@ -22,6 +25,7 @@ dist
 debug
 *.log
 logs
+npm-debug.log*
 
 # OS
 .DS_Store
@@ -33,8 +37,11 @@ credentials.json
 
 # Testing
 *.test.ts
+*.test.tsx
 *.spec.ts
 coverage
+__tests__
+__mocks__
 
 # Documentation
 *.md
@@ -45,3 +52,29 @@ coverage
 temp
 tmp
 .github
+*.tar.gz
+*.zip
+
+# Large directories NOT needed for web build
+# But we need their package.json files for bun workspace resolution
+cli/*
+!cli/package.json
+agents/*
+!agents/package.json
+.agents/*
+!.agents/package.json
+evals/*
+!evals/package.json
+test/
+
+# Playwright
+playwright-report/
+test-results/
+
+# Contentlayer (will be regenerated)
+.contentlayer
+
+# Docker files (not needed inside container)
+Dockerfile
+docker-compose.yml
+.dockerignore

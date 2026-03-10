@@ -1,63 +1,43 @@
-# Codebuff Development Makefile
-# Quick commands for local development
+# Codebuff PM2 Management Makefile
+# Usage: make <command>
 
-.PHONY: dev down db cli services sdk-build kill-ports studio help
+.PHONY: help pm2-start pm2-stop pm2-restart pm2-logs pm2-status pm2-delete pm2-build
 
-# Read ports from .env.local if it exists, otherwise use defaults
-PORT := $(shell grep -E '^PORT=' .env.local 2>/dev/null | cut -d'=' -f2 || echo 4242)
-WEB_PORT := $(shell grep -E '^NEXT_PUBLIC_WEB_PORT=' .env.local 2>/dev/null | cut -d'=' -f2 || echo 3000)
-
-## Kill processes using the configured ports
-kill-ports:
-	@echo "Killing processes on ports $(PORT) and $(WEB_PORT)..."
-	@lsof -ti:$(PORT) 2>/dev/null | xargs kill -9 2>/dev/null || true
-	@lsof -ti:$(WEB_PORT) 2>/dev/null | xargs kill -9 2>/dev/null || true
-	@lsof -ti:3000 2>/dev/null | xargs kill -9 2>/dev/null || true
-	@echo "Ports cleared"
-
-## Start web dev server with database (recommended for web development)
-dev: kill-ports
-	@echo "Starting database..."
-	bun start-db
-	@echo "Starting web dev server on port $(WEB_PORT)..."
-	cd web && PORT=$(WEB_PORT) bun dev
-
-## Start all background services (db, sdk build, studio)
-services: kill-ports
-	bun up
-
-## Stop all background services
-down:
-	bun down
-
-## Start only the database
-db: kill-ports
-	bun start-db
-
-## Start only the CLI (after services are running)
-cli:
-	bun start-cli
-
-## Build the SDK
-sdk-build:
-	bun --cwd sdk build
-
-## Start Drizzle Studio for database inspection
-studio:
-	bun --cwd packages/internal db:studio
-
-## Show help
+# Default target
 help:
-	@echo "Available commands:"
-	@echo "  make dev        - Kill ports, start database + web dev server"
-	@echo "  make services   - Kill ports, start all background services (bun up)"
-	@echo "  make down       - Stop all background services"
-	@echo "  make db         - Kill ports, start only the database"
-	@echo "  make cli        - Start only the CLI (after services are running)"
-	@echo "  make studio     - Start Drizzle Studio for DB inspection"
-	@echo "  make sdk-build  - Build the SDK"
-	@echo "  make kill-ports - Kill processes on configured ports"
-	@echo ""
-	@echo "Configured ports (from .env.local):"
-	@echo "  Internal API: $(PORT)"
-	@echo "  Web app:      $(WEB_PORT)"
+	@echo "Codebuff PM2 Management Commands:"
+	@echo "  make pm2-build    - Build the web app for production"
+	@echo "  make pm2-start    - Start Codebuff web with PM2"
+	@echo "  make pm2-stop     - Stop Codebuff web"
+	@echo "  make pm2-restart  - Restart Codebuff web"
+	@echo "  make pm2-logs     - Show PM2 logs for Codebuff"
+	@echo "  make pm2-status   - Show PM2 process status"
+	@echo "  make pm2-delete   - Remove Codebuff from PM2"
+
+# Build the web app
+pm2-build:
+	cd web && bun run build
+
+# Start Codebuff web with PM2
+pm2-start:
+	pm2 start "bun --cwd web run start" --name codebuff-web
+
+# Stop Codebuff web
+pm2-stop:
+	pm2 stop codebuff-web
+
+# Restart Codebuff web
+pm2-restart:
+	pm2 restart codebuff-web
+
+# Show logs
+pm2-logs:
+	pm2 logs codebuff-web
+
+# Show status
+pm2-status:
+	pm2 status
+
+# Delete from PM2
+pm2-delete:
+	pm2 delete codebuff-web

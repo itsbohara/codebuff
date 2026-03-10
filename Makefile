@@ -7,7 +7,7 @@
 help:
 	@echo "Codebuff PM2 Management Commands:"
 	@echo "  make pm2-build    - Build the web app for production"
-	@echo "  make pm2-start    - Start Codebuff web with PM2"
+	@echo "  make pm2-start    - Start Codebuff web with PM2 on port 6009"
 	@echo "  make pm2-stop     - Stop Codebuff web"
 	@echo "  make pm2-restart  - Restart Codebuff web"
 	@echo "  make pm2-logs     - Show PM2 logs for Codebuff"
@@ -18,9 +18,9 @@ help:
 pm2-build:
 	cd web && bun run build
 
-# Start Codebuff web with PM2
+# Start Codebuff web with PM2 (port 6009)
 pm2-start:
-	pm2 start "bun --cwd web run start" --name codebuff-web
+	cd web && PORT=6009 pm2 start "bun run start" --name codebuff-web
 
 # Stop Codebuff web
 pm2-stop:

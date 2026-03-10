@@ -25,6 +25,13 @@ export type StreamChunk =
     >
   | { type: 'error'; message: string }
 
+export type CacheDebugUsageData = {
+  inputTokens: number
+  outputTokens: number
+  cachedInputTokens: number
+  totalTokens: number
+}
+
 export type PromptAiSdkStreamFn = (
   params: {
     apiKey: string
@@ -40,7 +47,14 @@ export type PromptAiSdkStreamFn = (
     agentId?: string
     maxRetries?: number
     onCostCalculated?: (credits: number) => Promise<void>
+    onCacheDebugProviderRequestBuilt?: (params: {
+      provider: string
+      rawBody: unknown
+      normalizedBody?: unknown
+    }) => void
+    onCacheDebugUsageReceived?: (usage: CacheDebugUsageData) => void
     includeCacheControl?: boolean
+    cacheDebugCorrelation?: string
     agentProviderOptions?: OpenRouterProviderRoutingOptions
     /** List of agents that can be spawned - used to transform agent tool calls */
     spawnableAgents?: string[]
@@ -68,7 +82,14 @@ export type PromptAiSdkFn = (
     chargeUser?: boolean
     agentId?: string
     onCostCalculated?: (credits: number) => Promise<void>
+    onCacheDebugProviderRequestBuilt?: (params: {
+      provider: string
+      rawBody: unknown
+      normalizedBody?: unknown
+    }) => void
+    onCacheDebugUsageReceived?: (usage: CacheDebugUsageData) => void
     includeCacheControl?: boolean
+    cacheDebugCorrelation?: string
     agentProviderOptions?: OpenRouterProviderRoutingOptions
     maxRetries?: number
     /** Cost mode - 'free' mode means 0 credits charged for all agents */
@@ -97,7 +118,14 @@ export type PromptAiSdkStructuredInput<T> = {
   chargeUser?: boolean
   agentId?: string
   onCostCalculated?: (credits: number) => Promise<void>
+  onCacheDebugProviderRequestBuilt?: (params: {
+    provider: string
+    rawBody: unknown
+    normalizedBody?: unknown
+  }) => void
+  onCacheDebugUsageReceived?: (usage: CacheDebugUsageData) => void
   includeCacheControl?: boolean
+  cacheDebugCorrelation?: string
   agentProviderOptions?: OpenRouterProviderRoutingOptions
   maxRetries?: number
   sendAction: SendActionFn

@@ -14,8 +14,9 @@ export const serverEnvSchema = clientEnvSchema.extend({
   // Optional: Override the model used for research tasks like web search and docs (defaults to CODEBUFF_MAX_MODE_HELPER_MODEL or hardcoded model)
   CODEBUFF_MAX_MODE_RESEARCHER_MODEL: z.string().min(1).optional(),
   // Optional: Only needed if using direct provider APIs (not recommended)
-  OPENAI_API_KEY: z.string().optional(),
-  ANTHROPIC_API_KEY: z.string().optional(),
+  OPENAI_API_KEY: z.string().min(1),
+  ANTHROPIC_API_KEY: z.string().min(1),
+  FIREWORKS_API_KEY: z.string().min(1),
   LINKUP_API_KEY: z.string().min(1),
   CONTEXT7_API_KEY: z.string().optional(),
   GRAVITY_API_KEY: z.string().min(1).optional(),
@@ -62,6 +63,7 @@ export const serverProcessEnv: ServerInput = {
   CODEBUFF_MAX_MODE_RESEARCHER_MODEL: process.env.CODEBUFF_MAX_MODE_RESEARCHER_MODEL,
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+  FIREWORKS_API_KEY: process.env.FIREWORKS_API_KEY,
   LINKUP_API_KEY: process.env.LINKUP_API_KEY,
   CONTEXT7_API_KEY: process.env.CONTEXT7_API_KEY,
   GRAVITY_API_KEY: process.env.GRAVITY_API_KEY,

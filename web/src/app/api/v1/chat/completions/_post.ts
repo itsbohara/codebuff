@@ -36,6 +36,16 @@ import type { NextRequest } from 'next/server'
 import type { ChatCompletionRequestBody } from '@/llm-api/types'
 
 import {
+  FireworksError,
+  handleFireworksNonStream,
+  handleFireworksStream,
+  isFireworksModel,
+} from '@/llm-api/fireworks'
+import {
+  handleOpenAINonStream,
+  OPENAI_SUPPORTED_MODELS,
+} from '@/llm-api/openai'
+import {
   handleOpenRouterNonStream,
   handleOpenRouterStream,
   OpenRouterError,
@@ -266,19 +276,19 @@ export async function postChatCompletions(params: {
     if (ensureSubscriberBlockGrant) {
       try {
         const blockGrantResult = await ensureSubscriberBlockGrant({ userId, logger })
-        
+
         // Check if user hit subscription limit and should be rate-limited
         if (blockGrantResult && (isWeeklyLimitError(blockGrantResult) || isBlockExhaustedError(blockGrantResult))) {
           // Fetch user's preference for falling back to a-la-carte credits
           const preferences = getUserPreferences
             ? await getUserPreferences({ userId, logger })
             : { fallbackToALaCarte: true } // Default to allowing a-la-carte if no preference function
-          
+
           if (!preferences.fallbackToALaCarte && !isFreeModeRequest) {
             const resetTime = blockGrantResult.resetsAt
             const resetCountdown = formatQuotaResetCountdown(resetTime.toISOString())
             const limitType = isWeeklyLimitError(blockGrantResult) ? 'weekly' : '5-hour session'
-            
+
             trackEvent({
               event: AnalyticsEvent.CHAT_COMPLETIONS_INSUFFICIENT_CREDITS,
               userId,
@@ -289,7 +299,7 @@ export async function postChatCompletions(params: {
               },
               logger,
             })
-            
+
             return NextResponse.json(
               {
                 error: 'rate_limit_exceeded',
@@ -344,17 +354,28 @@ export async function postChatCompletions(params: {
     // Handle streaming vs non-streaming
     try {
       if (bodyStream) {
-        // Streaming request
-        const stream = await handleOpenRouterStream({
-          body: typedBody,
-          userId,
-          stripeCustomerId,
-          agentId,
-          openrouterApiKey,
-          fetch,
-          logger,
-          insertMessageBigquery,
-        })
+        // Streaming request — route to Fireworks for supported models
+        const useFireworks = isFireworksModel(typedBody.model)
+        const stream = useFireworks
+          ? await handleFireworksStream({
+            body: typedBody,
+            userId,
+            stripeCustomerId,
+            agentId,
+            fetch,
+            logger,
+            insertMessageBigquery,
+          })
+          : await handleOpenRouterStream({
+            body: typedBody,
+            userId,
+            stripeCustomerId,
+            agentId,
+            openrouterApiKey,
+            fetch,
+            logger,
+            insertMessageBigquery,
+          })
 
         trackEvent({
           event: AnalyticsEvent.CHAT_COMPLETIONS_STREAM_STARTED,
@@ -375,18 +396,50 @@ export async function postChatCompletions(params: {
           },
         })
       } else {
-        // All non-streaming requests go through OpenRouter
-        // OpenRouter supports all models (OpenAI, Anthropic, etc.) through a single API
-        const result = await handleOpenRouterNonStream({
-          body: typedBody,
-          userId,
-          stripeCustomerId,
-          agentId,
-          openrouterApiKey,
-          fetch,
-          logger,
-          insertMessageBigquery,
-        })
+        // Non-streaming request — route to Fireworks for supported models
+        const model = typedBody.model
+        const useFireworks = isFireworksModel(model)
+        const modelParts = model.split('/')
+        const shortModelName = modelParts.length > 1 ? modelParts[1] : model
+        const isOpenAIDirectModel =
+          model.startsWith('openai/') &&
+          (OPENAI_SUPPORTED_MODELS as readonly string[]).includes(shortModelName)
+        // Only use OpenAI endpoint for OpenAI models with n parameter
+        // All other models (including non-OpenAI with n parameter) should use OpenRouter
+        const shouldUseOpenAIEndpoint =
+          isOpenAIDirectModel && typedBody.codebuff_metadata?.n !== undefined
+
+        const nonStreamRequest = useFireworks
+          ? handleFireworksNonStream({
+            body: typedBody,
+            userId,
+            stripeCustomerId,
+            agentId,
+            fetch,
+            logger,
+            insertMessageBigquery,
+          })
+          : shouldUseOpenAIEndpoint
+            ? handleOpenAINonStream({
+              body: typedBody,
+              userId,
+              stripeCustomerId,
+              agentId,
+              fetch,
+              logger,
+              insertMessageBigquery,
+            })
+            : handleOpenRouterNonStream({
+              body: typedBody,
+              userId,
+              stripeCustomerId,
+              agentId,
+              openrouterApiKey,
+              fetch,
+              logger,
+              insertMessageBigquery,
+            })
+        const result = await nonStreamRequest
 
         trackEvent({
           event: AnalyticsEvent.CHAT_COMPLETIONS_GENERATION_STARTED,
@@ -406,9 +459,14 @@ export async function postChatCompletions(params: {
       if (error instanceof OpenRouterError) {
         openrouterError = error
       }
+      let fireworksError: FireworksError | undefined
+      if (error instanceof FireworksError) {
+        fireworksError = error
+      }
 
       // Log detailed error information for debugging
       const errorDetails = openrouterError?.toJSON()
+      const providerLabel = fireworksError ? 'Fireworks' : 'OpenRouter'
       logger.error(
         {
           error: getErrorObject(error),
@@ -422,15 +480,15 @@ export async function postChatCompletions(params: {
             ? typedBody.messages.length
             : 0,
           messages: typedBody.messages,
-          openrouterStatusCode: openrouterError?.statusCode,
-          openrouterStatusText: openrouterError?.statusText,
+          providerStatusCode: (openrouterError ?? fireworksError)?.statusCode,
+          providerStatusText: (openrouterError ?? fireworksError)?.statusText,
           openrouterErrorCode: errorDetails?.error?.code,
           openrouterErrorType: errorDetails?.error?.type,
           openrouterErrorMessage: errorDetails?.error?.message,
           openrouterProviderName: errorDetails?.error?.metadata?.provider_name,
           openrouterProviderRaw: errorDetails?.error?.metadata?.raw,
         },
-        'OpenRouter request failed',
+        `${providerLabel} request failed`,
       )
       trackEvent({
         event: AnalyticsEvent.CHAT_COMPLETIONS_ERROR,
@@ -444,8 +502,11 @@ export async function postChatCompletions(params: {
         logger,
       })
 
-      // Pass through OpenRouter provider-specific errors
+      // Pass through provider-specific errors
       if (error instanceof OpenRouterError) {
+        return NextResponse.json(error.toJSON(), { status: error.statusCode })
+      }
+      if (error instanceof FireworksError) {
         return NextResponse.json(error.toJSON(), { status: error.statusCode })
       }
 

@@ -1,5 +1,3 @@
-import { getMaxModeModel, models } from '@codebuff/common/constants/model-config'
-
 import { publisher } from '../constants'
 import {
   PLACEHOLDER,
@@ -64,7 +62,10 @@ Be extremely concise.`,
 const definition: SecretAgentDefinition = {
   id: 'code-reviewer',
   publisher,
-  ...createReviewer(getMaxModeModel(models.openrouter_claude_opus_4)),
+  ...createReviewer('anthropic/claude-opus-4.6'),
+  providerOptions: {
+    only: ['amazon-bedrock'],
+  },
 }
 
 export default definition

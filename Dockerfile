@@ -34,6 +34,9 @@ ENV DOCKER_BUILD=true
 # Copy source code
 COPY . .
 
+# Load environment variables for build
+COPY .env.docker .env.local
+
 # Build the web app
 RUN cd web && bun run build
 

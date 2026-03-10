@@ -22,6 +22,8 @@ COPY agents/package.json ./agents/
 COPY cli/package.json ./cli/
 COPY scripts/package.json ./scripts/
 COPY evals/package.json ./evals/
+COPY freebuff/package.json ./freebuff/
+COPY freebuff/web/package.json ./freebuff/web/
 
 # Install dependencies
 RUN bun install

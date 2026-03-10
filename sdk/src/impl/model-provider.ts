@@ -9,6 +9,7 @@
 import path from 'path'
 
 import { createAnthropic } from '@ai-sdk/anthropic'
+import { getMaxModeModel } from '@codebuff/common/constants/model-config'
 import { BYOK_OPENROUTER_HEADER } from '@codebuff/common/constants/byok'
 import {
   CLAUDE_CODE_SYSTEM_PROMPT_PREFIX,
@@ -165,11 +166,16 @@ type OpenRouterUsageAccounting = {
  *
  * If Claude OAuth credentials are available and the model is a Claude model,
  * returns an Anthropic direct model. Otherwise, returns the Codebuff backend model.
- * 
+ *
  * This function is async because it may need to refresh the OAuth token.
  */
 export async function getModelForRequest(params: ModelRequestParams): Promise<ModelResult> {
-  const { apiKey, model, skipClaudeOAuth } = params
+  let { apiKey, model, skipClaudeOAuth } = params
+
+  // Apply env override for specific models
+  if (model === 'anthropic/claude-opus-4.6') {
+    model = getMaxModeModel(model)
+  }
 
   // Check if we should use Claude OAuth direct
   // Skip if feature disabled, explicitly requested, if rate-limited, or if not a Claude model
